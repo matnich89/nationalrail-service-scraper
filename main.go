@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	nr "github.com/matnich89/national-rail-client/nationalrail"
 	"log"
@@ -27,20 +28,27 @@ func main() {
 		log.Fatalf("could not create national rail client: %v", err)
 	}
 
-	numWorkers := 20
+	numWorkers := 10
 	stations := internal.GetStations()
 	fmt.Printf("there are %d stations to check", len(stations))
 	stationsPerWorker := len(stations) / numWorkers
 
-	done := make(chan struct{})
-	var wg sync.WaitGroup
-
-	maxDelay := time.Minute * 1
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
+	maxDelay := 5 * time.Second
 	serviceChan := make(chan model.Train, 1000)
+
+	var wg sync.WaitGroup
+
+	go func() {
+		sig := <-sigs
+		fmt.Printf("Received signal %v. Starting shutdown...\n", sig)
+		cancel()
+	}()
 
 	for i := 0; i < numWorkers; i++ {
 		start := i * stationsPerWorker
@@ -60,11 +68,7 @@ func main() {
 		}
 
 		wg.Add(1)
-
-		go func(w *internal.Worker) {
-			defer wg.Done()
-			w.Work(done)
-		}(worker)
+		go worker.Work(ctx, &wg)
 	}
 
 	go func() {
@@ -75,9 +79,7 @@ func main() {
 	}()
 
 	wg.Wait()
-
 	close(serviceChan)
 
 	fmt.Println("Shutting down...")
-
 }
