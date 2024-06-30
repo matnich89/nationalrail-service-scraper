@@ -70,7 +70,7 @@ func (w *Worker) checkStation(ctx context.Context, station nationalrail.CRSCode)
 
 	services := departureBoard.Services
 	if services == nil || len(services) == 0 {
-		log.Printf("no services currently scheduled at station %s", station)
+		//	log.Printf("no services currently scheduled at station %s", station)
 		return nil
 	}
 

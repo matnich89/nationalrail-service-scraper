@@ -72,9 +72,10 @@ func main() {
 	}
 
 	go func() {
-		for service := range serviceChan {
+		for _ = range serviceChan {
+
 			// TODO push to queue
-			fmt.Printf("Received service: %v\n ", service)
+			//fmt.Printf("Received service: %v\n ", service)
 		}
 	}()
 
