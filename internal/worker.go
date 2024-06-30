@@ -75,7 +75,7 @@ func (w *Worker) checkStation(ctx context.Context, station nationalrail.CRSCode)
 	}
 
 	for _, service := range services {
-		if err := w.processService(ctx, station, service); err != nil {
+		if err := w.processService(ctx, service); err != nil {
 			if errors.Is(err, context.Canceled) {
 				return err
 			}
@@ -86,7 +86,7 @@ func (w *Worker) checkStation(ctx context.Context, station nationalrail.CRSCode)
 	return nil
 }
 
-func (w *Worker) processService(ctx context.Context, station nationalrail.CRSCode, service *nationalrail.Service) error {
+func (w *Worker) processService(ctx context.Context, service *nationalrail.Service) error {
 	if _, ok := w.ServiceIDS[service.ID]; !ok {
 		if service.ScheduledTimeOfDeparture != nil {
 			scheduledTime, err := parseScheduledTime(*service.ScheduledTimeOfDeparture)
@@ -107,7 +107,7 @@ func (w *Worker) processService(ctx context.Context, station nationalrail.CRSCod
 			}
 		}
 	} else {
-		log.Println("already have service", station)
+		log.Println("already have service", service.ID)
 	}
 	return nil
 }
