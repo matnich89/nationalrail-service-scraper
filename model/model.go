@@ -1,8 +1,6 @@
 package model
 
-import "time"
-
 type Train struct {
-	ID                 string
-	ScheduledDeparture time.Time
+	ID                 string `json:"id"`
+	ScheduledDeparture string `json:"scheduledDeparture"`
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/go-redis/redis/v8"
 	"github.com/matnich89/national-rail-client/nationalrail"
 	"log"
 	"sync"
@@ -14,11 +15,11 @@ import (
 type Worker struct {
 	ID           int
 	Stations     []nationalrail.CRSCode
-	ServiceIDS   map[string]bool
 	ServiceChan  chan model.Train
-	Client       *nationalrail.Client
+	NRClient     *nationalrail.Client
 	InitialDelay time.Duration
 	Ticker       *time.Ticker
+	RedisClient  *redis.Client
 }
 
 func (w *Worker) Work(ctx context.Context, wg *sync.WaitGroup) {
@@ -63,14 +64,14 @@ func (w *Worker) checkStations(ctx context.Context) {
 }
 
 func (w *Worker) checkStation(ctx context.Context, station nationalrail.CRSCode) error {
-	departureBoard, err := w.Client.GetDepartures(station)
+	departureBoard, err := w.NRClient.GetDepartures(station)
 	if err != nil {
 		return fmt.Errorf("could not get departure board for %s: %w", station, err)
 	}
 
 	services := departureBoard.Services
 	if services == nil || len(services) == 0 {
-		//	log.Printf("no services currently scheduled at station %s", station)
+		log.Printf("no services currently scheduled at station %s", station)
 		return nil
 	}
 
@@ -87,21 +88,22 @@ func (w *Worker) checkStation(ctx context.Context, station nationalrail.CRSCode)
 }
 
 func (w *Worker) processService(ctx context.Context, service *nationalrail.Service) error {
-	if _, ok := w.ServiceIDS[service.ID]; !ok {
+	exists, err := w.RedisClient.Exists(ctx, service.ID).Result()
+	if err != nil {
+		return fmt.Errorf("error checking Redis for service ID: %w", err)
+	}
+
+	if exists == 0 {
 		if service.ScheduledTimeOfDeparture != nil {
-			scheduledTime, err := parseScheduledTime(*service.ScheduledTimeOfDeparture)
-			if err != nil {
-				return fmt.Errorf("could not parse scheduled time: %w", err)
-			}
 
 			train := model.Train{
 				ID:                 service.ID,
-				ScheduledDeparture: scheduledTime,
+				ScheduledDeparture: *service.ScheduledTimeOfDeparture,
 			}
 
 			select {
 			case w.ServiceChan <- train:
-				w.ServiceIDS[service.ID] = true
+				// The train ID will be added to Redis in the listen function
 			case <-ctx.Done():
 				return context.Canceled
 			}
@@ -110,12 +112,4 @@ func (w *Worker) processService(ctx context.Context, service *nationalrail.Servi
 		log.Println("already have service", service.ID)
 	}
 	return nil
-}
-
-func parseScheduledTime(scheduledTime string) (time.Time, error) {
-	t, err := time.Parse("15:04", scheduledTime)
-	if err != nil {
-		return time.Time{}, err
-	}
-	return t, nil
 }

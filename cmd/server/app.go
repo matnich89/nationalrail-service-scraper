@@ -2,7 +2,9 @@ package cmd
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"github.com/go-redis/redis/v8"
 	nr "github.com/matnich89/national-rail-client/nationalrail"
 	"log"
 	"math/rand"
@@ -16,21 +18,23 @@ import (
 )
 
 type App struct {
-	client     *nr.Client
-	numWorkers int
-	stations   []nr.CRSCode
-	workers    []*internal.Worker
-	wg         sync.WaitGroup
-	trainChan  chan model.Train
+	nrClient    *nr.Client
+	redisClient *redis.Client
+	numWorkers  int
+	stations    []nr.CRSCode
+	workers     []*internal.Worker
+	wg          sync.WaitGroup
+	trainChan   chan model.Train
 }
 
-func NewApp(client *nr.Client, numWorkers int, stations []nr.CRSCode) *App {
+func NewApp(nrClient *nr.Client, redisClient *redis.Client, numWorkers int, stations []nr.CRSCode) *App {
 	return &App{
-		client:     client,
-		numWorkers: numWorkers,
-		stations:   stations,
-		wg:         sync.WaitGroup{},
-		trainChan:  make(chan model.Train),
+		nrClient:    nrClient,
+		redisClient: redisClient,
+		numWorkers:  numWorkers,
+		stations:    stations,
+		wg:          sync.WaitGroup{},
+		trainChan:   make(chan model.Train),
 	}
 }
 
@@ -51,9 +55,9 @@ func (a *App) SetupWorkers() {
 		worker := &internal.Worker{
 			ID:           i,
 			Stations:     a.stations[start:end],
-			ServiceIDS:   make(map[string]bool),
 			ServiceChan:  a.trainChan,
-			Client:       a.client,
+			NRClient:     a.nrClient,
+			RedisClient:  a.redisClient,
 			InitialDelay: time.Duration(rand.Int63n(int64(maxDelay))), // to stop all the workers hitting national rail at once, stagger the initial invocation
 			Ticker:       time.NewTicker(5 * time.Minute),             // departure boards are fairly slow to change, so can just check every 5 mins, to pick up new services
 		}
@@ -79,10 +83,9 @@ func (a *App) Run() {
 		cancel()
 	}()
 
-	// start workers
-
 	log.Println("starting workers...")
 
+	// start workers
 	for _, worker := range a.workers {
 		a.wg.Add(1)
 		go worker.Work(ctx, &a.wg)
@@ -95,7 +98,26 @@ func (a *App) Run() {
 }
 
 func (a *App) listen() {
+	ctx := context.Background()
 	for train := range a.trainChan {
 		log.Printf("received train %s", train.ID)
+
+		err := a.redisClient.Set(ctx, train.ID, "1", 500*time.Hour).Err()
+		if err != nil {
+			log.Printf("error setting train ID %s in Redis cache: %v", train.ID, err)
+		}
+
+		trainJSON, err := json.Marshal(train)
+		if err != nil {
+			log.Printf("error serializing train %s to JSON: %v", train.ID, err)
+			continue
+		}
+
+		err = a.redisClient.RPush(ctx, "train_queue", trainJSON).Err()
+		if err != nil {
+			log.Printf("error adding train %s to Redis queue: %v", train.ID, err)
+		} else {
+			log.Printf("added train %s to Redis queue", train.ID)
+		}
 	}
 }
