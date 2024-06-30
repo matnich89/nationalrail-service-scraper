@@ -80,6 +80,9 @@ func (a *App) Run() {
 	}()
 
 	// start workers
+
+	log.Println("starting workers...")
+
 	for _, worker := range a.workers {
 		a.wg.Add(1)
 		go worker.Work(ctx, &a.wg)
