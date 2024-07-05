@@ -24,7 +24,7 @@ type App struct {
 	stations    []nr.CRSCode
 	workers     []*internal.Worker
 	wg          sync.WaitGroup
-	trainChan   chan model.Train
+	trainChan   chan model.DepartingTrainId
 }
 
 func NewApp(nrClient *nr.Client, redisClient *redis.Client, numWorkers int, stations []nr.CRSCode) *App {
@@ -34,7 +34,7 @@ func NewApp(nrClient *nr.Client, redisClient *redis.Client, numWorkers int, stat
 		numWorkers:  numWorkers,
 		stations:    stations,
 		wg:          sync.WaitGroup{},
-		trainChan:   make(chan model.Train),
+		trainChan:   make(chan model.DepartingTrainId),
 	}
 }
 
@@ -99,25 +99,20 @@ func (a *App) Run() {
 
 func (a *App) listen() {
 	ctx := context.Background()
-	for train := range a.trainChan {
-		log.Printf("received train %s", train.ID)
+	for departingId := range a.trainChan {
+		log.Printf("received train %s", departingId.ID)
 
-		err := a.redisClient.Set(ctx, train.ID, "1", 500*time.Hour).Err()
+		departingIdJSON, err := json.Marshal(departingId)
 		if err != nil {
-			log.Printf("error setting train ID %s in Redis cache: %v", train.ID, err)
-		}
-
-		trainJSON, err := json.Marshal(train)
-		if err != nil {
-			log.Printf("error serializing train %s to JSON: %v", train.ID, err)
+			log.Printf("error serializing train %s to JSON: %v", departingId.ID, err)
 			continue
 		}
 
-		err = a.redisClient.RPush(ctx, "train_queue", trainJSON).Err()
+		err = a.redisClient.RPush(ctx, "train_queue", departingIdJSON).Err()
 		if err != nil {
-			log.Printf("error adding train %s to Redis queue: %v", train.ID, err)
+			log.Printf("error adding train %s to Redis queue: %v", departingId.ID, err)
 		} else {
-			log.Printf("added train %s to Redis queue", train.ID)
+			log.Printf("added train %s to Redis queue", departingId.ID)
 		}
 	}
 }

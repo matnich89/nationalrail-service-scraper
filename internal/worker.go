@@ -15,7 +15,7 @@ import (
 type Worker struct {
 	ID           int
 	Stations     []nationalrail.CRSCode
-	ServiceChan  chan model.Train
+	ServiceChan  chan model.DepartingTrainId
 	NRClient     *nationalrail.Client
 	InitialDelay time.Duration
 	Ticker       *time.Ticker
@@ -88,28 +88,21 @@ func (w *Worker) checkStation(ctx context.Context, station nationalrail.CRSCode)
 }
 
 func (w *Worker) processService(ctx context.Context, service *nationalrail.Service) error {
-	exists, err := w.RedisClient.Exists(ctx, service.ID).Result()
-	if err != nil {
-		return fmt.Errorf("error checking Redis for service ID: %w", err)
-	}
 
-	if exists == 0 {
-		if service.ScheduledTimeOfDeparture != nil {
+	if service.ScheduledTimeOfDeparture != nil {
 
-			train := model.Train{
-				ID:                 service.ID,
-				ScheduledDeparture: *service.ScheduledTimeOfDeparture,
-			}
+		train := model.DepartingTrainId{
+			ID: service.ID,
+		}
 
-			select {
-			case w.ServiceChan <- train:
-				// The train ID will be added to Redis in the listen function
-			case <-ctx.Done():
-				return context.Canceled
-			}
+		select {
+		case w.ServiceChan <- train:
+			// The train ID will be added to Redis in the listen function
+		case <-ctx.Done():
+			return context.Canceled
 		}
 	} else {
-		log.Println("already have service", service.ID)
+		log.Println("service does have scheduled time of departure", service.ID)
 	}
 	return nil
 }

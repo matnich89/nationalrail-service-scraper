@@ -22,7 +22,13 @@ func main() {
 		log.Fatalf("could not create national rail client: %v", err)
 	}
 
-	app := cmd.NewApp(nrClient, redisClient, 10, internal.GetStations())
+	stations, err := internal.GetStations("./stations.txt")
+
+	if err != nil {
+		log.Fatalf("could not get stations: %v", err)
+	}
+
+	app := cmd.NewApp(nrClient, redisClient, 10, stations)
 
 	app.SetupWorkers()
 
