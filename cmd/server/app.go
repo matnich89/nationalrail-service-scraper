@@ -76,6 +76,8 @@ func (a *App) Run() {
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
+	a.AddHealthCheckEndpoint()
+
 	go func() {
 		sig := <-sigs
 		fmt.Printf("Received signal %v. Starting shutdown...\n", sig)

@@ -12,11 +12,15 @@ import (
 	"trainstats-scraper/redis"
 )
 
+type RailClient interface {
+	GetDepartures(code nationalrail.CRSCode, opts ...nationalrail.RequestOption) (*nationalrail.StationBoard, error)
+}
+
 type Worker struct {
 	ID           int
 	Stations     []nationalrail.CRSCode
 	ServiceChan  chan model.DepartingTrainId
-	NRClient     *nationalrail.Client
+	NRClient     RailClient
 	InitialDelay time.Duration
 	Ticker       *time.Ticker
 	RedisClient  redis.IRedisClient
