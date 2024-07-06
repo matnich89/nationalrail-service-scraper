@@ -25,7 +25,11 @@ func main() {
 		log.Fatalf("could not create national rail client: %v", err)
 	}
 
-	redisClient := redis.NewRedisClient(c.TrainIdQueueName, c.RedisAddress)
+	redisClient, err := redis.NewRedisClient(c.TrainIdQueueName, c.RedisAddress)
+
+	if err != nil {
+		log.Fatalf("could not create redis client: %v", err)
+	}
 
 	stations, err := station.GetStations("./stations.txt")
 

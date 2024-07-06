@@ -1,8 +1,6 @@
 package config
 
 import (
-	"errors"
-	"fmt"
 	"github.com/joho/godotenv"
 	"os"
 )
@@ -22,13 +20,15 @@ func Load() (*Config, error) {
 	}
 
 	return &Config{
-		NationalRailApiKey: os.Getenv("NATIONAL_RAIL_API_KEY"),
+		NationalRailApiKey: getEnv("NATIONAL_RAIL_API_KEY"),
+		RedisAddress:       getEnv("REDIS_ADDRESS"),
+		TrainIdQueueName:   getEnv("TRAIN_ID_QUEUE_NAME"),
 	}, nil
 }
 
-func getEnv(key string) (string, error) {
+func getEnv(key string) string {
 	if value, exists := os.LookupEnv(key); exists {
-		return value, nil
+		return value
 	}
-	return "", errors.New(fmt.Sprintf("Environment variable %s is not set", key))
+	return ""
 }
