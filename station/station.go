@@ -1,4 +1,4 @@
-package internal
+package station
 
 import (
 	"github.com/matnich89/national-rail-client/nationalrail"

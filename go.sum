@@ -4,6 +4,8 @@ github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f h1:lO4WD4F/r
 github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f/go.mod h1:cuUVRXasLTGF7a8hSLbxyZXjz+1KgoB3wDUb6vlszIc=
 github.com/go-redis/redis/v8 v8.11.5 h1:AcZZR7igkdvfVmQTPnu9WE37LRrO/YrBH5zWyjDC0oI=
 github.com/go-redis/redis/v8 v8.11.5/go.mod h1:gREzHqY1hg6oD9ngVRbLStwAWKhA0FEgq8Jd4h5lpwo=
+github.com/joho/godotenv v1.5.1 h1:7eLL/+HRGLY0ldzfGMeQkb7vMd0as4CfYvUVzLqw0N0=
+github.com/joho/godotenv v1.5.1/go.mod h1:f4LDr5Voq0i2e/R5DDNOoa2zzDfwtkZa6DnEwAbqwq4=
 github.com/matnich89/national-rail-client v0.0.0-20240629185102-89626f75549b h1:2n+lx7hi+0Sf3CbPm6mhEGu5DVNcl7smqScApxadk/c=
 github.com/matnich89/national-rail-client v0.0.0-20240629185102-89626f75549b/go.mod h1:IWliZUovm8MwDfrA25JRUsKcAPhPqk4HaK3Zj0lD+V4=
 github.com/matnich89/national-rail-client v0.0.0-20240630122905-6e7f7e206a7c h1:ky1Cbyigw0oObBH3dO94zzfeTyuboHVniOxToGJIbs4=
@@ -14,3 +16,5 @@ github.com/matnich89/national-rail-client v0.0.0-20240630161744-c2bbd55f75d9 h1:
 github.com/matnich89/national-rail-client v0.0.0-20240630161744-c2bbd55f75d9/go.mod h1:IWliZUovm8MwDfrA25JRUsKcAPhPqk4HaK3Zj0lD+V4=
 github.com/matnich89/national-rail-client v0.0.0-20240630162424-0e3c99840029 h1:EyEuvQ+GDhAyp3Q8brXWwBMXLkY65nReWhnJUNI0SPo=
 github.com/matnich89/national-rail-client v0.0.0-20240630162424-0e3c99840029/go.mod h1:IWliZUovm8MwDfrA25JRUsKcAPhPqk4HaK3Zj0lD+V4=
+github.com/stretchr/testify v1.9.0 h1:HtqpIVDClZ4nwg75+f6Lvsy/wHu+3BoSGCbBAcpTsTg=
+github.com/stretchr/testify v1.9.0/go.mod h1:r2ic/lqez/lEtzL7wO/rwa5dbSLXVDPFyf8C91i36aY=

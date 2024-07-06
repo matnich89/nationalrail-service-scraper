@@ -1,28 +1,33 @@
 package main
 
 import (
-	"github.com/go-redis/redis/v8"
 	nr "github.com/matnich89/national-rail-client/nationalrail"
 	"log"
-	"os"
 	cmd "trainstats-scraper/cmd/server"
-	"trainstats-scraper/internal"
+	"trainstats-scraper/config"
+	"trainstats-scraper/redis"
+	"trainstats-scraper/station"
 )
 
 func main() {
-	nrClient, err := nr.NewClient(
-		nr.AccessTokenOpt(os.Getenv("NATIONAL_RAIL_API_KEY")),
-	)
 
-	redisClient := redis.NewClient(&redis.Options{
-		Addr: "localhost:6379",
-	})
+	c, err := config.Load()
+
+	if err != nil {
+		log.Fatalf("could not load config %v", err)
+	}
+
+	nrClient, err := nr.NewClient(
+		nr.AccessTokenOpt(c.NationalRailApiKey),
+	)
 
 	if err != nil {
 		log.Fatalf("could not create national rail client: %v", err)
 	}
 
-	stations, err := internal.GetStations("./stations.txt")
+	redisClient := redis.NewRedisClient(c.TrainIdQueueName, c.RedisAddress)
+
+	stations, err := station.GetStations("./stations.txt")
 
 	if err != nil {
 		log.Fatalf("could not get stations: %v", err)
