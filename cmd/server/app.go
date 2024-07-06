@@ -2,9 +2,7 @@ package cmd
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"github.com/go-redis/redis/v8"
 	nr "github.com/matnich89/national-rail-client/nationalrail"
 	"log"
 	"math/rand"
@@ -13,21 +11,22 @@ import (
 	"sync"
 	"syscall"
 	"time"
-	"trainstats-scraper/internal"
 	"trainstats-scraper/model"
+	"trainstats-scraper/redis"
+	"trainstats-scraper/worker"
 )
 
 type App struct {
 	nrClient    *nr.Client
-	redisClient *redis.Client
+	redisClient redis.IRedisClient
 	numWorkers  int
 	stations    []nr.CRSCode
-	workers     []*internal.Worker
+	workers     []*worker.Worker
 	wg          sync.WaitGroup
 	trainChan   chan model.DepartingTrainId
 }
 
-func NewApp(nrClient *nr.Client, redisClient *redis.Client, numWorkers int, stations []nr.CRSCode) *App {
+func NewApp(nrClient *nr.Client, redisClient redis.IRedisClient, numWorkers int, stations []nr.CRSCode) *App {
 	return &App{
 		nrClient:    nrClient,
 		redisClient: redisClient,
@@ -52,7 +51,7 @@ func (a *App) SetupWorkers() {
 			end = len(a.stations)
 		}
 
-		worker := &internal.Worker{
+		worker := &worker.Worker{
 			ID:           i,
 			Stations:     a.stations[start:end],
 			ServiceChan:  a.trainChan,
@@ -100,19 +99,9 @@ func (a *App) Run() {
 func (a *App) listen() {
 	ctx := context.Background()
 	for departingId := range a.trainChan {
+
 		log.Printf("received train %s", departingId.ID)
 
-		departingIdJSON, err := json.Marshal(departingId)
-		if err != nil {
-			log.Printf("error serializing train %s to JSON: %v", departingId.ID, err)
-			continue
-		}
-
-		err = a.redisClient.RPush(ctx, "train_queue", departingIdJSON).Err()
-		if err != nil {
-			log.Printf("error adding train %s to Redis queue: %v", departingId.ID, err)
-		} else {
-			log.Printf("added train %s to Redis queue", departingId.ID)
-		}
+		a.redisClient.PushToQueue(ctx, departingId)
 	}
 }

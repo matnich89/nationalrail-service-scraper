@@ -1,15 +1,15 @@
-package internal
+package worker
 
 import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/go-redis/redis/v8"
 	"github.com/matnich89/national-rail-client/nationalrail"
 	"log"
 	"sync"
 	"time"
 	"trainstats-scraper/model"
+	"trainstats-scraper/redis"
 )
 
 type Worker struct {
@@ -19,7 +19,7 @@ type Worker struct {
 	NRClient     *nationalrail.Client
 	InitialDelay time.Duration
 	Ticker       *time.Ticker
-	RedisClient  *redis.Client
+	RedisClient  redis.IRedisClient
 }
 
 func (w *Worker) Work(ctx context.Context, wg *sync.WaitGroup) {
