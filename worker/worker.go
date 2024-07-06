@@ -12,11 +12,15 @@ import (
 	"trainstats-scraper/redis"
 )
 
+type RailClient interface {
+	GetDepartures(code nationalrail.CRSCode, opts ...nationalrail.RequestOption) (*nationalrail.StationBoard, error)
+}
+
 type Worker struct {
 	ID           int
 	Stations     []nationalrail.CRSCode
 	ServiceChan  chan model.DepartingTrainId
-	NRClient     *nationalrail.Client
+	NRClient     RailClient
 	InitialDelay time.Duration
 	Ticker       *time.Ticker
 	RedisClient  redis.IRedisClient
@@ -70,7 +74,7 @@ func (w *Worker) checkStation(ctx context.Context, station nationalrail.CRSCode)
 	}
 
 	services := departureBoard.Services
-	if services == nil || len(services) == 0 {
+	if len(services) == 0 {
 		log.Printf("no services currently scheduled at station %s", station)
 		return nil
 	}
